@@ -52,8 +52,8 @@ class WorkoutSchema(Schema):
 
 class WorkoutExerciseSchema(Schema):
     id = fields.Int(dump_only=True)
-    workout_id = fields.Int(required=True)
-    exercise_id = fields.Int(required=True)
+    workout_id = fields.Int(dump_only=True, required=True)
+    exercise_id = fields.Int(dump_only = True, required=True)
     reps = fields.Int(allow_none=True)
     sets = fields.Int(allow_none=True)
     duration_seconds = fields.Int(allow_none=True)
@@ -96,8 +96,6 @@ class WorkoutExerciseSchema(Schema):
             raise ValidationError(
                 "Use either duration_seconds OR reps and sets, not both."
             )
-
-
 
 
 exercise_schema = ExerciseSchema()
