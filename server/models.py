@@ -9,7 +9,7 @@ class Exercise(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     category = db.Column(db.String(50), nullable=False)
-    equipment_needed=db.Column(db.Booloean, nullable=False)
+    equipment_needed=db.Column(db.Boolean, nullable=False)
     workout_exercises = db.relationship("WorkoutExercise", back_populates="exercise", cascade ="all, delete-orphan")
     workouts = db.relationship("Workout", secondary="workout_exercises", back_populates="exercises", viewonly=True)
 
@@ -58,13 +58,14 @@ class Workout(db.Model):
 class WorkoutExercises(db.Model):
     __tablename__ = "workout_exercises"
     id = db.Column(db.Integer, primary_key=True)
-    workout_id = db.Column(db.Integer, db.Foreign_key("workouts.id"), nullable=False)
-    exercise_id = db.Column(db.Integer, db.ForeignKey("exercises.id", nullable=False))
+    workout_id = db.Column(db.Integer, db.ForeignKey("workouts.id"), nullable=False)
+    exercise_id = db.Column(db.Integer, db.ForeignKey("exercises.id"), nullable=False)
     reps = db.Column(db.Integer)
     sets = db.Column(db.Integer)
     duration_seconds = db.Column(db.Integer)
     workout = db.relationship("Workout", back_populates="workout_exercises")
     exercise = db.relationship("Exercise", back_populates="workout_exercises")
+
 
     #Validating sets
     @validates("sets")
