@@ -11,7 +11,7 @@ class Exercise(db.Model):
     category = db.Column(db.String)
     equipment_needed=db.Column(db.Booloean)
 
-#Workout Model
+#Workout Model definition
 class Workout(db.Model):
     __tablename__ = "workouts"
     id = db.Column(db.Integer, primary_key=True)
