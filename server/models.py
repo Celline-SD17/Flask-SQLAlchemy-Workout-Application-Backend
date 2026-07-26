@@ -10,7 +10,9 @@ class Exercise(db.Model):
     name = db.Column(db.String)
     category = db.Column(db.String)
     equipment_needed=db.Column(db.Booloean)
-
+    workout_exercises = db.relationship("WorkoutExercise", back_populates="exercise", cascade ="all, delete-orphan")
+    workouts = db.relationship("Workout", secondary="workout_exercises", back_populates="exercises", viewonly=True)
+    
 #Workout Model definition
 class Workout(db.Model):
     __tablename__ = "workouts"
@@ -18,8 +20,11 @@ class Workout(db.Model):
     date = db.COlumn(db.Date)
     duration_minutes=db.Column(db.Integer)
     notes = db.Column(db.Text)
+    workout_exercises = db.relationship("WorkoutExercise", back_populates="workout", cascade="all, delete-orphan")
+    exercises = db.relationship("Exercise", secondary='workout_exercises', back_populates="workouts", viewonly=True)
+    
 
-# WoroutExercises(Join table)
+# WorkoutExercises(Join table)
 class WorkoutExercises(db.Model):
     __tablename__ = "workout_exercises"
     id = db.Column(db.Integer, primary_key=True)
@@ -28,3 +33,5 @@ class WorkoutExercises(db.Model):
     reps = db.Column(db.Integer)
     sets = db.Column(db.Integer)
     duration_seconds = db.Column(db.Integer)
+    workout = db.relationship("Workout", back_populates="workout_exercises")
+    exercise = db.relationship("Exercise", back_populates="workout_exercises")
