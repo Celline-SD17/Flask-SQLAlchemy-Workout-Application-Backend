@@ -1,7 +1,11 @@
 from flask import Flask, make_response, request
 from flask_migrate import Migrate
+from marshmallow import ValidationError
+from datetime import date
+
 
 from models import *
+from schema import *
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -22,16 +26,7 @@ def index():
 @app.route("/workouts")
 def get_workouts():
     workouts = Workout.query.all()
-    response_body = []
-    for workout in workouts:
-        response_body.append({
-            "id": workout.id,
-            "date": workout.date.isoformat(),
-            "duration_minutes": workout.duration_minutes,
-            "notes": workout.notes
-        })
-
-    return make_response(response_body)
+    return make_response(workouts_schema.dump(workouts), 200)
 
 
 #Getting workout by ID
@@ -43,22 +38,7 @@ def get_workout(id):
             {"error": "Workout not found"},
             404
         )
-    exercises = []
-    for exercise in workout.exercises:
-        exercises.append({
-            "id": exercise.id,
-            "name": exercise.name,
-            "category": exercise.category,
-            "equipment_needed": exercise.equipment_needed
-        })
-    response_body = {
-        "id": workout.id,
-        "date": workout.date.isoformat(),
-        "duration_minutes": workout.duration_minutes,
-        "notes": workout.notes,
-        "exercises": exercises
-    }
-    return make_response(response_body)
+    return make_response(workout_schema.dump(workout), 200)
 
 
 #Creating a workout
@@ -66,27 +46,23 @@ def get_workout(id):
 def create_workout():
     json_data = request.get_json()
     try:
+        data = workout_schema.load(json_data)
         workout = Workout(
-            date=json_data["date"],
-            duration_minutes=json_data["duration_minutes"],
-            notes=json_data.get("notes")
+            date=data["date"],
+            duration_minutes=data["duration_minutes"],
+            notes=data.get("notes")
         )
         db.session.add(workout)
         db.session.commit()
-        response_body = {
-            "id": workout.id,
-            "date": workout.date.isoformat(),
-            "duration_minutes": workout.duration_minutes,
-            "notes": workout.notes
-        }
+        response_body = workout_schema.dump(workout)
         return make_response(response_body, 201)
-    except Exception as err:
+    except ValidationError as err:
+        return make_response(err.messages, 400)
+    except ValueError as err:
         return make_response(
             {"error": str(err)},
             400
         )
-
-
  #Deleting a Workout
 @app.route("/workouts/<int:id>", methods=["DELETE"])
 def delete_workout(id):
@@ -107,64 +83,36 @@ def delete_workout(id):
 @app.route("/exercises")
 def get_exercises():
     exercises = Exercise.query.all()
-    response_body = []
-    for exercise in exercises:
-        response_body.append({
-            "id": exercise.id,
-            "name": exercise.name,
-            "category": exercise.category,
-            "equipment_needed": exercise.equipment_needed
-        })
-    return make_response(response_body)
-
+    response_body = exercises_schema.dump(exercises)
+    return make_response(response_body, 200)
 
 #Get exercise by ID
 @app.route("/exercises/<int:id>")
 def get_exercise(id):
     exercise = Exercise.query.filter(Exercise.id == id).first()
     if not exercise:
-        return make_response(
-            {"error": "Exercise not found"},
-            404
-        )
-    workouts = []
-    for workout in exercise.workouts:
-        workouts.append({
-            "id": workout.id,
-            "date": workout.date.isoformat(),
-            "duration_minutes": workout.duration_minutes,
-            "notes": workout.notes
-        })
-    response_body = {
-        "id": exercise.id,
-        "name": exercise.name,
-        "category": exercise.category,
-        "equipment_needed": exercise.equipment_needed,
-        "workouts": workouts
-    }
-    return make_response(response_body)
-
+        return make_response({"error": "Exercise not found"}, 404)
+    response_body = exercise_schema.dump(exercise)
+    return make_response(response_body, 200)
 
 #Creating an exercise
 @app.route("/exercises", methods=["POST"])
 def create_exercise():
     json_data = request.get_json()
     try:
+        data = exercise_schema.load(json_data)
         exercise = Exercise(
-            name=json_data["name"],
-            category=json_data["category"],
-            equipment_needed=json_data["equipment_needed"]
+            name=data["name"],
+            category=data["category"],
+            equipment_needed=data["equipment_needed"]
         )
         db.session.add(exercise)
         db.session.commit()
-        response_body = {
-            "id": exercise.id,
-            "name": exercise.name,
-            "category": exercise.category,
-            "equipment_needed": exercise.equipment_needed
-        }
+        response_body = exercise_schema.dump(exercise)
         return make_response(response_body, 201)
-    except Exception as err:
+    except ValidationError as err:
+        return make_response(err.messages, 400)
+    except ValueError as err:
         return make_response(
             {"error": str(err)},
             400
@@ -176,8 +124,7 @@ def create_exercise():
 def delete_exercise(id):
     exercise = Exercise.query.filter(Exercise.id == id).first()
     if not exercise:
-        return make_response(
-            {"error": "Exercise not found"}, 404)
+        return make_response({"error": "Exercise not found"}, 404)
     db.session.delete(exercise)
     db.session.commit()
     return make_response({}, 204)
@@ -198,25 +145,23 @@ def add_exercise_to_workout(workout_id, exercise_id):
         )
     json_data = request.get_json()
     try:
+        data = workout_exercise_schema.load(json_data)
         workout_exercise = WorkoutExercises(
             workout_id=workout_id,
             exercise_id=exercise_id,
-            reps=json_data.get("reps"),
-            sets=json_data.get("sets"),
-            duration_seconds=json_data.get("duration_seconds")
+            reps=data.get("reps"),
+            sets=data.get("sets"),
+            duration_seconds=data.get("duration_seconds")
         )
         db.session.add(workout_exercise)
         db.session.commit()
-        response_body = {
-            "id": workout_exercise.id,
-            "workout_id": workout_exercise.workout_id,
-            "exercise_id": workout_exercise.exercise_id,
-            "reps": workout_exercise.reps,
-            "sets": workout_exercise.sets,
-            "duration_seconds": workout_exercise.duration_seconds
-        }
+        response_body = workout_exercise_schema.dump(
+            workout_exercise
+        )
         return make_response(response_body, 201)
-    except Exception as err:
+    except ValidationError as err:
+        return make_response(err.messages, 400)
+    except ValueError as err:
         return make_response(
             {"error": str(err)},
             400
